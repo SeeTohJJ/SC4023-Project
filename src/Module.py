@@ -1,7 +1,8 @@
 import time
 import ZoneMap
-from Constant import COLUMN_STORE_FILES
-
+from Constant import COLUMN_STORE_FILES, ASSIGNMENT_TOWN_LIST
+import re
+import csv, os
 
 def _to_comparable(value):
     if isinstance(value, (int, float)):
@@ -219,7 +220,7 @@ def fetch_additional_columns_by_zone(zonemaps, indices, columns):
 """
 Shared scan to find the minimum price per (x,y) pair with the assignment filter requirements
 """
-def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x, valid_towns):
+def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x, desired_y, valid_towns):
     """
     Shared scan to find best price per (month_offset, floor area threshold y)
     Floor area thresholds always start at 80 up to the actual floor area, max 150.
@@ -322,7 +323,7 @@ def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x,
 
             # Find the indexes for each (x,y) pair, and only keep the minimum price for each pair
             max_y = min(int(actual_area), 150)
-            for y in range(80, max_y + 1):
+            for y in range(desired_y, max_y + 1):
                 key = (month_offset, y)
                 global_index = start + i + 1
                 if key not in best_valid_pairs or price < best_valid_pairs[key]['price']:
@@ -399,3 +400,57 @@ def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x,
     print("Total execution time for shared scan with cache:", round((main_end_time-main_start_time),2 ), "seconds")
     clear_zone_cache() # Clear the cache after the function execution to free up memory
     return rows
+
+
+def query_column_store(zonemaps, matric_number, desired_x, desired_y):
+    digits = extract_digits_from_matric(matric_number)
+    year = get_target_year(digits)
+    month = get_month(digits)
+    town = get_towns(digits)
+
+
+    rows = shared_scan_min_pairs_with_cache(zonemaps, month, year, desired_x, desired_y, town)
+    to_csv(matric_number, rows)
+
+# Helper function to extract the numbers from the metric number
+def extract_digits_from_matric(matric_number):
+    return [int(d) for d in re.findall(r'\d', matric_number)]
+
+
+# Helper function to derive the target year from the last digit of the matric number
+def get_target_year(digits):
+    if digits[-1] < 5:
+        return 2020 + digits[-1]
+    return 2010 + digits[-1]
+
+
+# Helper function to derive the month from the second last digit of the matric number, with 0 = october
+def get_month(digits):
+    second_last = digits[-2]
+
+    if second_last == 0:
+        return 10
+    else:
+        return second_last
+
+
+# Helper function to dervie the list of valid towns based on all digits of the metric number
+# ASSIGNMENT_TOWN_LIST is taken directly from the assignment description
+def get_towns(digits):
+    towns = set()
+    for d in digits:
+        towns.add(ASSIGNMENT_TOWN_LIST[d])
+    return list(towns)
+
+
+def to_csv(matric_number, rows):
+    folder = os.path.join("..", "ScanResults")
+    os.makedirs(folder, exist_ok=True)
+
+    filename = os.path.join(folder, f"ScanResult_{matric_number}.csv")
+
+    with open(filename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['(x, y)', 'Year', 'Month', 'Town', 'Block', 'Floor_Area', 'Flat_Model', 'Lease_Commence_Date', 'Price_Per_Square_Meter'])
+        for row in rows:
+            writer.writerow(row)

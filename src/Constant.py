@@ -28,18 +28,18 @@ COLUMN_STORE_FILES = {
 
 
 # Taken from the Assignment Description Table 1
-ASSIGNMENT_TOWN_LIST = [
-    'BEDOK',
-    'BUKIT PANJANG',
-    'CLEMENTI',
-    'CHOA CHU KANG',
-    'HOUGANG',
-    'JURONG WEST',
-    'PASIR RIS',
-    'TAMPINES',
-    'WOODLANDS',
-    'YISHUN'
-]
+ASSIGNMENT_TOWN_LIST = {
+    0: "BEDOK",
+    1: "BUKIT PANJANG",
+    2: "CLEMENTI",
+    3: "CHOA CHU KANG",
+    4: "HOUGANG",
+    5: "JURONG WEST",
+    6: "PASIR RIS",
+    7: "TAMPINES",
+    8: "WOODLANDS",
+    9: "YISHUN"
+}
 
 TOWN_LIST = [
     'ANG MO KIO',

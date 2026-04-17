@@ -2,7 +2,7 @@ import pandas as pd
 from ColumnStore import ColumnStore
 import time
 from Constant import search_for_unique_constants
-from Module import sort_data_by_year_month, zone_mapping, shared_scan_min_pairs_with_cache
+from Module import sort_data_by_year_month, zone_mapping, shared_scan_min_pairs_with_cache, query_column_store
 
 
 # Convert the data stored in the CSV into column store
@@ -37,7 +37,7 @@ print("====================================================================")
 start_time = time.time()
 to_column_store(resale_data)
 zonemaps = zone_mapping(1024)
-shared_scan_min_pairs_with_cache(zonemaps, 1, 2017, 3, ["Ang Mo Kio", "Jurong West", "Bedok"])
+shared_scan_min_pairs_with_cache(zonemaps, 1, 2017, 3, 80, ["Ang Mo Kio", "Jurong West", "Bedok"])
 end_time = time.time()
 print("Column store + zone mapping + shared scan + caching completed in",
       round((end_time - start_time), 2),
@@ -51,8 +51,10 @@ start_time = time.time()
 sorted_data = sort_data_by_year_month(resale_data)
 to_column_store(resale_data)
 zonemaps = zone_mapping(1024)
-shared_scan_min_pairs_with_cache(zonemaps, 1, 2017, 3, ["Ang Mo Kio", "Jurong West", "Bedok"])
+shared_scan_min_pairs_with_cache(zonemaps, 1, 2017, 3, 80, ["Ang Mo Kio", "Jurong West", "Bedok"])
 end_time = time.time()
 print("Sorted column store + zone mapping + shared scan + caching completed in",
       round((end_time - start_time), 2),
       "seconds")
+
+query_column_store(zonemaps, "U2321347B", 3, 80)
