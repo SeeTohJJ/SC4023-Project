@@ -2,7 +2,7 @@ import pandas as pd
 from ColumnStore import ColumnStore
 import time
 from Constant import search_for_unique_constants
-from Module import sort_data_by_year_month, zone_mapping, shared_scan_min_pairs_with_cache, query_column_store
+from Module import sort_data_by_year_month, zone_mapping, query_column_store
 
 
 # Convert the data stored in the CSV into column store
@@ -18,43 +18,74 @@ def to_column_store(dataframe):
             "seconds")
 
 
-# Program Start
-print("Program Starting")
-print("Reading Data")
-
 resale_data = pd.read_csv("../Data/cleaned_data.csv")
 
 # Find out all unique constants in the columns Town, FlatType, FlatModel, StoreyRange and stored as array in Constant
 # Comment out after initial run
 # search_for_unique_constants(resale_data)
 
+def run_query_loop(zonemaps):
+    while True:
+        metric_number = input("Enter metric number: ")
+        desired_x = int(input("Enter desired length of months from the commencing month for the query: "))
+        desired_y = int(input("Enter desired minimum square meters of HDB resale flats for the query: "))
 
-print("====================================================================")
-print("Starting column store + zone mapping + shared scan + caching")
-print("====================================================================")
+        start_time = time.time()
+        query_column_store(zonemaps, metric_number, desired_x, desired_y)
+        end_time = time.time()
 
-# zone mapping with zone size 1024
-start_time = time.time()
-to_column_store(resale_data)
-zonemaps = zone_mapping(1024)
-shared_scan_min_pairs_with_cache(zonemaps, 1, 2017, 3, 80, ["Ang Mo Kio", "Jurong West", "Bedok"])
-end_time = time.time()
-print("Column store + zone mapping + shared scan + caching completed in",
-      round((end_time - start_time), 2),
-      "seconds")
+        print("Query completed in",
+              round((end_time - start_time), 2),
+              "seconds")
 
-print("====================================================================")
-print("Starting sorted column store + zone mapping + shared scan + caching")
-print("====================================================================")
-# sorted by year and month + zone mapping
-start_time = time.time()
-sorted_data = sort_data_by_year_month(resale_data)
-to_column_store(resale_data)
-zonemaps = zone_mapping(1024)
-shared_scan_min_pairs_with_cache(zonemaps, 1, 2017, 3, 80, ["Ang Mo Kio", "Jurong West", "Bedok"])
-end_time = time.time()
-print("Sorted column store + zone mapping + shared scan + caching completed in",
-      round((end_time - start_time), 2),
-      "seconds")
+        cont = input("Run another query? (y/n): ")
+        if cont.lower() != 'y':
+            break
 
-query_column_store(zonemaps, "U2321347B", 3, 80)
+def main():
+    while True:
+        print("\nProgram Starting")
+        print("1. Unsorted Column Store")
+        print("2. Sorted Column Store")
+        print("0. Quit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            start_time = time.time()
+
+            to_column_store(resale_data)
+            zonemaps = zone_mapping(1024)
+
+            end_time = time.time()
+            print("Unsorted column store + zone mapping completed in",
+                  round((end_time - start_time), 2),
+                  "seconds")
+
+            run_query_loop(zonemaps)
+
+        elif choice == "2":
+            start_time = time.time()
+
+            sorted_data = sort_data_by_year_month(resale_data)
+            to_column_store(sorted_data)
+            zonemaps = zone_mapping(1024)
+
+            end_time = time.time()
+            print("Sorted column store + zone mapping completed in",
+                  round((end_time - start_time), 2),
+                  "seconds")
+
+            run_query_loop(zonemaps)
+
+        elif choice == "0":
+            print("Exiting app...")
+            break
+
+        else:
+            print("Invalid input, try again.")
+
+
+
+if __name__ == "__main__":
+    main()

@@ -8,53 +8,49 @@ eg: 2015 Jan to Dec will be zone 1 to zone 12
     2016 Jan to Dec will be zone 13 to zone 24
 """
 def dynamic_zone_mapping_using_month(file_path):
+    if not os.path.exists(file_path):
+        print("File does not exist")
+        return []
 
-    if os.path.exists(file_path):
-        zones = []
+    zones = []
 
-        with open(file_path, 'r') as f:
-            lines = f.read().split('\n')
+    with open(file_path, 'r') as f:
+        lines = [line.strip() for line in f][1:]  # skip header
 
-        current_start_index = None
-        zone_number = 0
-        previous_value = None
+    lines = [line for line in lines if line != '']
+    values = [int(v) for v in lines]
 
-        for idx in range(1, len(lines)):
-            line = lines[idx]
+    current_start = 0
+    zone_number = 1
 
-            if line == "":
-                continue
+    for i in range(1, len(values)):
+        # when value changes → new zone
+        if values[i] != values[i - 1]:
+            zone_values = values[current_start:i]
 
-            value = int(line)
-
-            if previous_value is None:
-                zone_number += 1
-                current_start_index = idx
-                previous_value = value
-                continue
-
-            if value != previous_value:
-                zones.append({
-                    'zone': zone_number,
-                    'start': current_start_index,
-                    'end': idx - 1
-                })
-
-                zone_number += 1
-                current_start_index = idx
-                previous_value = value
-
-        if previous_value is not None:
             zones.append({
                 'zone': zone_number,
-                'start': current_start_index,
-                'end': len(lines) - 1
+                'start': current_start,
+                'end': i - 1,
+                'min': min(zone_values),
+                'max': max(zone_values)
             })
 
-        return zones
+            zone_number += 1
+            current_start = i
 
-    else:
-        print("File does not exist")
+    # last zone
+    zone_values = values[current_start:]
+
+    zones.append({
+        'zone': zone_number,
+        'start': current_start,
+        'end': len(values) - 1,
+        'min': min(zone_values),
+        'max': max(zone_values)
+    })
+
+    return zones
 
 
 """

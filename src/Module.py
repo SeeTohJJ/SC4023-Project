@@ -44,7 +44,7 @@ def dynamic_zone_mapping():
           round((end_time-start_time),2 ),
           "seconds")
 
-    # print(result)
+    print(result)
     return result
 
 # Conduct zone mapping on the column store file
@@ -64,6 +64,7 @@ def zone_mapping(ZONE_SIZE):
           round((end_time-start_time),2 ),
           "seconds")
 
+    print(zone_map)
     return zone_map
 
 
@@ -84,93 +85,6 @@ def read_zone(file_path, start, end):
 
     safe_end = min(data_end, len(values) - 1)
     return values[data_start:safe_end + 1]
-
-
-def shared_scan_min_pairs(zonemaps, commencing_month, target_year, x, valid_towns):
-    best_valid_pairs = {}
-
-    window_size = int(x)
-    if window_size < 1 or window_size > 8:
-        print("Invalid x/window size:", window_size)
-        return []
-
-    encoded_towns = {str(t).strip().upper() for t in valid_towns}
-
-    max_month = commencing_month + window_size - 1
-    num_zones = len(zonemaps['month_num'])
-    print(encoded_towns)
-    # print(num_zones)
-    print(max_month)
-    print(zonemaps['month_num'])
-    print(num_zones)
-    print(range(num_zones))
-
-    # Finding valid zones
-    valid_zones = []
-    for z in range(num_zones):
-        zone = zonemaps['month_num'][z]
-
-        min_val = _to_comparable(zone.get('min'))
-        max_val = _to_comparable(zone.get('max'))
-
-        if max_val < commencing_month or min_val > max_month:
-            continue
-
-        valid_zones.append(z)
-    print(valid_zones)
-
-    # Shared Scanning
-    for z in valid_zones:
-        start = zonemaps['month_num'][z]['start']
-        end = zonemaps['month_num'][z]['end']
-
-        month_zone = read_zone(COLUMN_STORE_FILES['month_num'], start, end)
-        area_zone = read_zone(COLUMN_STORE_FILES['floor_area'], start, end)
-        price_zone = read_zone(COLUMN_STORE_FILES['resale_price'], start, end)
-        town_zone = read_zone(COLUMN_STORE_FILES['town'], start, end)
-        year_zone = read_zone(COLUMN_STORE_FILES['year'], start, end)
-
-        row_count = min(len(month_zone), len(area_zone), len(price_zone), len(town_zone), len(year_zone))
-
-        for i in range(row_count):
-
-            if int(year_zone[i]) != int(target_year):
-                continue
-
-            month = int(month_zone[i])
-            if month < commencing_month or month > max_month:
-                continue
-
-            month_offset = month - commencing_month + 1
-
-            town = str(town_zone[i]).strip().upper()
-            if town not in encoded_towns:
-                continue
-
-            y = float(area_zone[i])
-            if y < 80 or y > 150:
-                continue
-
-            price = float(price_zone[i])
-            if (price / y) >= 4725:
-                continue
-
-            key = (month_offset, y)
-            global_index = start + i + 1  # +1 to account for header line in the file
-
-            # Update the best valid pair for this (month_offset, area) if it's the first one found or if it has a lower price
-            if key not in best_valid_pairs or price < best_valid_pairs[key]['price']:
-                best_valid_pairs[key] = {
-                    'price': price,
-                    'index': global_index,
-                    'month': month,
-                    'town': town,
-                    'zone': z + 1
-                }
-    # Sort the valid pairs to ensure y values ascends before the x values
-    sorted_best_value_pair = sorted(best_valid_pairs.items(), key=lambda item: (item[0][0], item[0][1]))
-    print("Best valid pairs found:", sorted_best_value_pair)
-    return sorted_best_value_pair
 
 
 # Global cache to store the data read from the column store files for each zone,
@@ -220,7 +134,7 @@ def fetch_additional_columns_by_zone(zonemaps, indices, columns):
 """
 Shared scan to find the minimum price per (x,y) pair with the assignment filter requirements
 """
-def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x, desired_y, valid_towns):
+def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, desired_x, desired_y, valid_towns):
     """
     Shared scan to find best price per (month_offset, floor area threshold y)
     Floor area thresholds always start at 80 up to the actual floor area, max 150.
@@ -228,19 +142,19 @@ def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x,
     main_start_time = time.time()
 
     best_valid_pairs = {}
-    window_size = int(x)
-    if window_size < 1 or window_size > 8:
-        print("Invalid x/window size:", window_size)
+    month_range = int(desired_x)
+    if month_range < 1 or month_range > 8:
+        print("Invalid x:", month_range)
         return []
 
     month_year_window = []
-    for offset in range(window_size):
+    for offset in range(month_range):
         month_in_window = (commencing_month + offset - 1) % 12 + 1
         year_for_month = target_year + (commencing_month + offset - 1) // 12
         month_year_window.append((month_in_window, year_for_month))
 
     encoded_towns = {str(t).strip().upper() for t in valid_towns}
-    max_month = commencing_month + window_size - 1
+    max_month = commencing_month + month_range - 1
     num_zones = len(zonemaps['month_num'])
 
     # Zone pruning on multiple zonemaps: month_num, year, floor_area, town, resale_price
@@ -253,13 +167,11 @@ def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x,
         m = zonemaps['month_num'][z]
         y_zone = zonemaps['year'][z]
         a = zonemaps['floor_area'][z]
-        p = zonemaps['resale_price'][z]
         t = zonemaps['town'][z]
 
         m_min, m_max = _to_comparable(m['min']), _to_comparable(m['max'])
         y_min, y_max = _to_comparable(y_zone['min']), _to_comparable(y_zone['max'])
         a_min, a_max = _to_comparable(a['min']), _to_comparable(a['max'])
-        p_min = _to_comparable(p['min'])
         t_min = str(t['min']).strip().upper()
         t_max = str(t['max']).strip().upper()
 
@@ -281,6 +193,7 @@ def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x,
     print("Valid zones after pruning:", valid_zones)
 
     start_time = time.time()
+
     # Shared scan on the valid zones after pruning, with lazy loading and caching of the column data to minimize reads
     for z in valid_zones:
         start = zonemaps['month_num'][z]['start']
@@ -323,19 +236,23 @@ def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x,
 
             # Find the indexes for each (x,y) pair, and only keep the minimum price for each pair
             max_y = min(int(actual_area), 150)
+            price_per_area = price / actual_area
+            global_index = start + i + 1
+
             for y in range(desired_y, max_y + 1):
-                key = (month_offset, y)
-                global_index = start + i + 1
-                if key not in best_valid_pairs or price < best_valid_pairs[key]['price']:
-                    best_valid_pairs[key] = {
-                        'price': price,
-                        'index': global_index,
-                        'year': year,
-                        'month': month,
-                        'floor_area': actual_area,
-                        'town': town,
-                        'zone': z + 1
-                    }
+                for x in range(month_offset, month_range + 1):
+                    key = (x, y)
+
+                    if key not in best_valid_pairs or price_per_area < best_valid_pairs[key]['price_per_area']:
+                        best_valid_pairs[key] = {
+                            'price_per_area': price_per_area,
+                            'index': global_index,
+                            'year': year,
+                            'month': month,
+                            'floor_area': actual_area,
+                            'town': town,
+                            'zone': z + 1
+                        }
 
     end_time = time.time()
     print("Shared scan finished in",
@@ -386,7 +303,8 @@ def shared_scan_min_pairs_with_cache(zonemaps, commencing_month, target_year, x,
             value.get('floor_area', ''),
             value.get('flat_model', ''),
             value.get('lease_year', ''),
-            round(value['price'] / value.get('floor_area')),
+            # round(value['price'] / value.get('floor_area')),
+            round(value['price_per_area']),
             # value['price'] # used to check against the Excel file, param not used in assignment requirements
         ]
         rows.append(row)
