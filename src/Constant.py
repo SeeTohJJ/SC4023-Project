@@ -1,5 +1,3 @@
-import pandas
-
 columns_to_find_unique_constants = ["Town", "FlatType", "FlatModel", "StoreyRange"]
 
 # Helper function to find out all unique constants in the columns Town, FlatType, FlatModel, StoreyRange
@@ -24,6 +22,23 @@ COLUMN_STORE_FILES = {
     'lease_year': '../ColumnStore/leaseyear.columnStore',
     'resale_price': '../ColumnStore/resaleprice.columnStore',
     'year': '../ColumnStore/year.columnStore'
+}
+
+
+# File paths for the compressed column stored files
+COMPRESSED_COLUMN_STORE_FILES = {
+    'month': '../CompressedColumnStore/month.columnStore.gz',
+    'month_num': '../CompressedColumnStore/monthnum.columnStore.gz',
+    'town': '../CompressedColumnStore/town.columnStore.gz',
+    'block': '../CompressedColumnStore/block.columnStore.gz',
+    'street': '../CompressedColumnStore/street.columnStore.gz',
+    'flat_type': '../CompressedColumnStore/flattype.columnStore.gz',
+    'flat_model': '../CompressedColumnStore/flatmodel.columnStore.gz',
+    'storey_range': '../CompressedColumnStore/storeyrange.columnStore.gz',
+    'floor_area': '../CompressedColumnStore/floorarea.columnStore.gz',
+    'lease_year': '../CompressedColumnStore/leaseyear.columnStore.gz',
+    'resale_price': '../CompressedColumnStore/resaleprice.columnStore.gz',
+    'year': '../CompressedColumnStore/year.columnStore.gz'
 }
 
 

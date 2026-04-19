@@ -6,6 +6,8 @@ we have map the start and end index of each zone based on month
 
 eg: 2015 Jan to Dec will be zone 1 to zone 12
     2016 Jan to Dec will be zone 13 to zone 24
+    
+Not used in the final implementation
 """
 def dynamic_zone_mapping_using_month(file_path):
     if not os.path.exists(file_path):
