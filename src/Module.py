@@ -381,7 +381,7 @@ def get_towns(digits):
 
 # Convert the final result into a csv file with the required parameters mentioned in the assignment, with the filename format "ScanResult_{matric_number}.csv"
 def to_csv(matric_number, rows):
-    folder = os.path.join("..", "ScanResults")
+    folder = os.path.join("..", "Output")
     os.makedirs(folder, exist_ok=True)
 
     filename = os.path.join(folder, f"ScanResult_{matric_number}.csv")
