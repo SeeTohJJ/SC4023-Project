@@ -1,17 +1,15 @@
 import os
-import pandas as pd
-import functools
 
 NULL_CONSTANT = "@#*NULL@#*"
 
 class ColumnStore:
-    def __init__(self, dataframe):
-        """
-        Initialize the ColumnStore object with the provided dataframe and an empty cache
+    """
+    Initialize the ColumnStore object with the provided dataframe and an empty cache
 
-        Args:
-        - dataframe: preprocessed csv containing the data to be stored and processed
-        """
+    Args:
+    - dataframe: preprocessed csv containing the data to be stored and processed
+    """
+    def __init__(self, dataframe):
 
         self.dataframe = dataframe
         self.cache = {}
@@ -32,13 +30,15 @@ class ColumnStore:
             'resale_price': int
         }
 
-    def convert_to_column_store(self, directory):
-        """
-        Coverts and stores each column of the dataframe into separate files in the ../ColumnStore directory
 
-        Args:
-        - directory: Path to directory where the files will be stored
-        """
+    """
+    Coverts and stores each column of the dataframe into separate files in the ../ColumnStore directory
+
+    Args:
+    - directory: Path to directory where the files will be stored
+    """
+    def convert_to_column_store(self, directory):
+
         if not os.path.exists(directory):
             os.makedirs(directory)
 

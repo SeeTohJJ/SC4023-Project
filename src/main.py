@@ -50,31 +50,10 @@ def run_query_loop(zonemaps, compression):
             break
 
 
-# Main logic for querying the column store with compression
-# User will be prompted to enter metric number, x and y
-# def run_compressed_query_loop(zonemaps):
-#     while True:
-#         metric_number = input("Enter metric number: ")
-#         desired_x = int(input("Enter desired length of months from the commencing month for the query: "))
-#         desired_y = int(input("Enter desired minimum square meters of HDB resale flats for the query: "))
-#
-#         start_time = time.time()
-#         query_compressed_column_store(zonemaps, metric_number, desired_x, desired_y)
-#         end_time = time.time()
-#
-#         print("Compressed query completed in",
-#               round((end_time - start_time), 2),
-#               "seconds")
-#
-#         cont = input("Run another compressed query? (y/n): ")
-#         if cont.lower() != 'y':
-#             break
-
-
 # Main function loop of the program
 def main():
     while True:
-        print("\nProgram Starting")
+        print("\nProgram Started")
         print("1. Unsorted Column Store")
         print("2. Sorted Column Store")
         print("3. Unsorted Column Store + Compression")
